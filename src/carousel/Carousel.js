@@ -51,7 +51,8 @@ export default class Carousel extends Component {
         swipeThreshold: PropTypes.number,
         useScrollView: PropTypes.bool,
         vertical: PropTypes.bool,
-        onSnapToItem: PropTypes.func
+        onSnapToItem: PropTypes.func,
+        onMoveBetweenItems: PropTypes.func,
     };
 
     static defaultProps = {
@@ -659,8 +660,25 @@ export default class Carousel extends Component {
         }
     }
 
+
+    // bjarte
+    _getInbetweenPos (event) {
+      const scrollOffset = event ? this._getScrollOffset(event) : this._currentContentOffset;
+
+      return a.reduce((acc, pos, index) => {
+
+        if (scrollOffset > pos.start && scrollOffset <= pos.end) {
+          const _start = 0;
+          const _end = pos.end - pos.start;
+          const _currentPos = pos.end - scrollOffset;
+          return index + (1 - (_currentPos / _end))
+        }
+        return acc;
+      }, 0);
+    }
+
     _onScroll (event) {
-        const { callbackOffsetMargin, enableMomentum, onScroll } = this.props;
+        const { callbackOffsetMargin, enableMomentum, onScroll, onMoveBetweenItems } = this.props;
 
         const scrollOffset = event ? this._getScrollOffset(event) : this._currentContentOffset;
         const nextActiveItem = this._getActiveItem(scrollOffset);
@@ -668,9 +686,14 @@ export default class Carousel extends Component {
             scrollOffset >= this._scrollOffsetRef - callbackOffsetMargin &&
             scrollOffset <= this._scrollOffsetRef + callbackOffsetMargin;
 
+        if (onMoveBetweenItems && event) {
+          onMoveBetweenItems(this._getInbetweenPos(event));
+        }
+
         this._currentContentOffset = scrollOffset;
         this._onScrollTriggered = true;
         this._lastScrollDate = Date.now();
+
 
         if (this._activeItem !== nextActiveItem && this._shouldUseCustomAnimation()) {
             this._playCustomSlideAnimation(this._activeItem, nextActiveItem);
